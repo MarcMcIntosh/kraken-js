@@ -1,13 +1,32 @@
-kraken.js
-=========
+![kraken-js](public/krakenLogo.png)
 
-Lead Maintainer: [Jean-Charles Sisk](https://github.com/jasisk)
+# kraken.js
 
-[![Build Status](https://travis-ci.org/krakenjs/kraken-js.svg?branch=v1.0.x)](https://travis-ci.org/krakenjs/kraken-js)  
+[![Build Status](https://travis-ci.org/krakenjs/kraken-js.svg?branch=v1.0.x)](https://travis-ci.org/krakenjs/kraken-js) [![Greenkeeper badge](https://badges.greenkeeper.io/krakenjs/kraken-js.svg)](https://greenkeeper.io/)  
 
 Kraken builds upon [express](http://expressjs.com/) and enables environment-aware, dynamic configuration, advanced middleware capabilities, security, and app lifecycle events.
 For more information and examples check out [krakenjs.com](http://krakenjs.com)
 
+Table of Contents
+=================
+
+* [Basic Usage](#basic-usage)
+* [API](#api)
+  * [Options](#options)
+* [Config Protocols](#config-protocols)
+* [Features](#features)
+  * [Configuration](#configuration)
+    * [Environment-aware](#environment-aware)
+  * [Middleware](#middleware)
+    * [Included Middleware](#included-middleware)
+    * [Extending Default Middleware](#extending-default-middleware)
+  * [Application Security](#application-security)
+  * [Lifecycle Events](#lifecycle-events)
+  * [Configuration-based express Settings](#configuration-based-express-settings)
+  * [View Engine Configuration](#view-engine-configuration)
+* [Tests](#tests)
+* [Coverage](#coverage)
+* [Reading app configs from within the kraken app](#reading-app-configs-from-within-the-kraken-app)
 
 ## Basic Usage
 
@@ -85,9 +104,13 @@ var options = {
 };
 ```
 
-#### `uncaughtException` (*Function*, optional)
-Handler for `uncaughtException` errors. See the [endgame](https://github.com/totherik/endgame) module for defaults.
+#### `onKrakenMount` (*Function*, optional)
+Provides a synchronous hook which executes once kraken mounts. It takes an express `app` instance as the first argument, and `options` as the second. The signature of this handler is `function (app, options)`.
 
+#### `uncaughtException` (*Function*, optional)
+Handler for `uncaughtException` errors outside of the middleware chain. See the [endgame](https://github.com/krakenjs/endgame) module for defaults.
+
+For uncaught errors in the middleware chain, see `shutdown` middleware instead.
 
 ## Config Protocols
 kraken comes with the following shortstop protocol handlers by default:
@@ -166,6 +189,8 @@ Kraken comes with common middleware already included in its `config.json` file. 
       - *Object*
         - `"timeout"` - milliseconds (default: `30000`)
         - `"template"` - template to render (default: `null`)
+        - `"shutdownHeaders"` - custom headers to write while still disconnecting.
+        - `"uncaughtException"` - custom handler - `function (error, req, res, next)` - for uncaught errors. Default behavior is to log the error and then trigger shutdown.
 * `"compress"` - adds compression to server responses
   - Priority - 10
   - Enabled - `false` (disabled in all environments by default)
@@ -251,7 +276,7 @@ Additional notes:
 #### Extending Default Middleware
 In any non-trivial Kraken deployment you will likely need to extend the included middleware. Common middleware which need extension include cookie parsing and session handling. In those particular cases, the secrets used should be updated:
 
-```json
+```js
 {
     // include this in your own config.json and this will merge with the Kraken defaults
     "middleware": {
@@ -288,7 +313,7 @@ In any non-trivial Kraken deployment you will likely need to extend the included
 
 Another common update is to pass options to middleware which is configured only with the defaults, such as the compression middleware:
 
-```json
+```js
 {
     "middleware": {
         "compress": {
@@ -310,13 +335,13 @@ More complicated examples include configuring the session middleware to use a sh
 
   1. Overlay the existing session middleware in your configuration:
 
-  ```json
+  ```js
   {
       // in your config.json
       "middleware": {
           "session": {
               "module": {
-                  // use our own module instead
+                  // use your own module instead
                   "name": "path:./lib/middleware/redis-session",
                   "arguments": [
                       // express-session configuration
@@ -389,7 +414,7 @@ Kraken adds support for additional events to your express app instance:
 Since express instances are themselves config objects, the convention is to set values on the app instance for use by
 express internally as well as other code across the application. kraken-js allows you to configure express via JSON.
 Any properties are supported, but kraken-js defaults include:
-```json
+```js
 {
     "express": {
         "env": "", // NOTE: `env` is managed by the framework. This value will be overwritten.
@@ -419,7 +444,7 @@ configure express to use it for resolving views.
 
 For example:
 
-```json
+```js
 {
     "express": {
         "view": "path:./lib/MyCustomViewResolver"
@@ -431,7 +456,7 @@ For example:
 ### View Engine Configuration
 kraken-js looks to the `view engines` config property to understand how to load and initialize renderers. The value of the
 `view engines` property is an object mapping the desired file extension to engine config settings. For example:
-```json
+```js
 {
     "view engines": {
         "jade": {
@@ -481,7 +506,7 @@ $ npm test
 ```
 
 ## Coverage
-````bash
+```bash
 $ npm run-script cover && open coverage/lcov-report/index.html
 ```
 

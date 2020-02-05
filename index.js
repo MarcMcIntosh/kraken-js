@@ -1,5 +1,5 @@
 /*───────────────────────────────────────────────────────────────────────────*\
- │  Copyright (C) 2014 eBay Software Foundation                                │
+ │  Copyright 2016 PayPal                                                      │
  │                                                                             │
  │hh ,'""`.                                                                    │
  │  / _  _ \  Licensed under the Apache License, Version 2.0 (the "License");  │
@@ -37,10 +37,10 @@ module.exports = function (options) {
     }
 
     options = options || {};
-    options.protocols    = options.protocols || {};
-    options.onconfig     = options.onconfig || noop;
-    options.basedir      = options.basedir || path.dirname(caller());
-    options.mountpath    = null;
+    options.protocols = options.protocols || {};
+    options.onconfig = options.onconfig || noop;
+    options.basedir = options.basedir || path.dirname(caller());
+    options.mountpath = null;
     options.inheritViews = !!options.inheritViews;
 
     debug('kraken options\n', options);
@@ -50,12 +50,16 @@ module.exports = function (options) {
         var start, error, promise;
 
         // Remove sacrificial express app
-        parent._router.stack.pop();
+        (parent._router || parent.router).stack.pop();
 
         // Since this particular `app` instance is
         // subsequently deleted, the `mountpath` is
         // moved to `options` for use later.
         options.mountpath = app.mountpath;
+
+        // on krakenmount
+        const onKrakenMount = options.onKrakenMount;
+        onKrakenMount && onKrakenMount(parent, options);
 
         start = parent.emit.bind(parent, 'start');
         error = parent.emit.bind(parent, 'error');
@@ -68,9 +72,10 @@ module.exports = function (options) {
 
 
         parent.use(function startup(req, res, next) {
+            var headers = options.startupHeaders;
+
             if (promise.isPending()) {
                 res.status(503);
-                var headers = options.startupHeaders;
                 if (headers) {
                     res.header(headers);
                 }
